@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wallet Risk Score Gauge</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a1a;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  .card {
+    background: #242424;
+    border-radius: 20px;
+    padding: 2rem 2.5rem 2.5rem;
+    max-width: 680px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .gauge-wrap { text-align: center; }
+  .label { font-size: 14px; color: #888; margin-top: -0.5rem; margin-bottom: 4px; }
+  .score-num { font-size: 52px; font-weight: 600; color: #fff; line-height: 1; }
+  .risk-badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 5px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .breakdown {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 2rem;
+  }
+  .bc {
+    background: #2e2e2e;
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .bc-label { font-size: 11px; color: #888; margin-bottom: 6px; }
+  .bc-val { font-size: 22px; font-weight: 600; }
+  .bc-bar-wrap { height: 3px; background: #444; border-radius: 2px; margin-top: 8px; }
+  .bc-bar { height: 3px; border-radius: 2px; transition: width 0.6s ease; }
+  .slider-section { margin-top: 1.5rem; border-top: 1px solid #333; padding-top: 1.25rem; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: #888;
+  }
+  .slider-row label { min-width: 130px; text-align: right; }
+  .slider-row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: #444;
+    outline: none;
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+  }
+  .slider-row span { min-width: 32px; text-align: left; color: #fff; font-weight: 500; }
+  .section-title { font-size: 11px; color: #555; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="gauge-wrap">
+    <svg id="gauge-svg" width="100%" viewBox="0 0 500 290">
+      <defs>
+        <clipPath id="arc-clip">
+          <rect x="0" y="0" width="500" height="240"/>
+        </clipPath>
+      </defs>
+      <!-- Zone arcs: green 0–40, amber 40–60, red 60–100 -->
+      <path d="M 48 240 A 202 202 0 0 1 134 67" fill="none" stroke="#2ecc71" stroke-width="34" stroke-linecap="butt" clip-path="url(#arc-clip)"/>
+      <path d="M 134 67 A 202 202 0 0 1 250 38" fill="none" stroke="#f1c40f" stroke-width="34" stroke-linecap="butt" clip-path="url(#arc-clip)"/>
+      <path d="M 250 38 A 202 202 0 0 1 452 240" fill="none" stroke="#e74c3c" stroke-width="34" stroke-linecap="butt" clip-path="url(#arc-clip)"/>
+
+      <!-- Inner border line -->
+      <path d="M 48 240 A 202 202 0 0 1 452 240" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5" clip-path="url(#arc-clip)"/>
+
+      <!-- Tick labels -->
+      <text x="36"  y="262" text-anchor="middle" font-size="13" fill="#2ecc71"   font-family="Segoe UI,sans-serif">0</text>
+      <text x="130" y="56"  text-anchor="middle" font-size="13" fill="#aaa"      font-family="Segoe UI,sans-serif">40</text>
+      <text x="250" y="26"  text-anchor="middle" font-size="13" fill="#aaa"      font-family="Segoe UI,sans-serif">60</text>
+      <text x="370" y="56"  text-anchor="middle" font-size="13" fill="#aaa"      font-family="Segoe UI,sans-serif">80</text>
+      <text x="464" y="262" text-anchor="middle" font-size="13" fill="#e74c3c"   font-family="Segoe UI,sans-serif">100</text>
+
+      <!-- Needle -->
+      <g id="needle-g" transform="rotate(0, 250, 240)">
+        <line x1="250" y1="240" x2="250" y2="52"
+              stroke="white" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="250" cy="240" r="10" fill="white"/>
+        <circle cx="250" cy="240" r="5"  fill="#242424"/>
+      </g>
+    </svg>
+
+    <div class="label">Wallet risk score</div>
+    <div class="score-num" id="score-display">60</div>
+    <div class="risk-badge" id="risk-badge">Medium-High risk</div>
+  </div>
+
+  <!-- Component breakdown -->
+  <div class="breakdown">
+    <div class="bc">
+      <div class="bc-label">Behavioural</div>
+      <div class="bc-val" id="b-val">25</div>
+      <div class="bc-bar-wrap"><div class="bc-bar" id="b-bar" style="width:25%"></div></div>
+    </div>
+    <div class="bc">
+      <div class="bc-label">Graph risk</div>
+      <div class="bc-val" id="g-val">62</div>
+      <div class="bc-bar-wrap"><div class="bc-bar" id="g-bar" style="width:62%"></div></div>
+    </div>
+    <div class="bc">
+      <div class="bc-label">Cluster risk</div>
+      <div class="bc-val" id="c-val">55</div>
+      <div class="bc-bar-wrap"><div class="bc-bar" id="c-bar" style="width:55%"></div></div>
+    </div>
+    <div class="bc">
+      <div class="bc-label">GNN score</div>
+      <div class="bc-val" id="n-val">72</div>
+      <div class="bc-bar-wrap"><div class="bc-bar" id="n-bar" style="width:72%"></div></div>
+    </div>
+  </div>
+
+  <!-- Sliders -->
+  <div class="slider-section">
+    <div class="section-title">Adjust component scores</div>
+    <div class="slider-row">
+      <label>Behavioural (25%)</label>
+      <input type="range" min="0" max="100" value="25" id="sl-b" step="1" oninput="update()">
+      <span id="sl-b-out">25</span>
+    </div>
+    <div class="slider-row">
+      <label>Graph risk (25%)</label>
+      <input type="range" min="0" max="100" value="62" id="sl-g" step="1" oninput="update()">
+      <span id="sl-g-out">62</span>
+    </div>
+    <div class="slider-row">
+      <label>Cluster risk (20%)</label>
+      <input type="range" min="0" max="100" value="55" id="sl-c" step="1" oninput="update()">
+      <span id="sl-c-out">55</span>
+    </div>
+    <div class="slider-row">
+      <label>GNN score (30%)</label>
+      <input type="range" min="0" max="100" value="72" id="sl-n" step="1" oninput="update()">
+      <span id="sl-n-out">72</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const weights = { b: 0.25, g: 0.25, c: 0.20, n: 0.30 };
+
+  function getColor(v) {
+    if (v < 40) return '#2ecc71';
+    if (v < 60) return '#f1c40f';
+    return '#e74c3c';
+  }
+
+  function getLabel(v) {
+    if (v < 40) return { text: 'Low risk',         bg: 'rgba(46,204,113,0.15)', color: '#2ecc71' };
+    if (v < 60) return { text: 'Medium risk',       bg: 'rgba(241,196,15,0.15)',  color: '#f1c40f' };
+    if (v < 75) return { text: 'Medium-High risk',  bg: 'rgba(230,126,34,0.15)', color: '#e67e22' };
+    return              { text: 'High risk',         bg: 'rgba(231,76,60,0.15)',  color: '#e74c3c' };
+  }
+
+  function scoreToAngle(score) {
+    return -90 + (score / 100) * 180;
+  }
+
+  function update() {
+    const vals = {
+      b: +document.getElementById('sl-b').value,
+      g: +document.getElementById('sl-g').value,
+      c: +document.getElementById('sl-c').value,
+      n: +document.getElementById('sl-n').value,
+    };
+
+    const total = Math.round(
+      vals.b * weights.b + vals.g * weights.g +
+      vals.c * weights.c + vals.n * weights.n
+    );
+
+    ['b', 'g', 'c', 'n'].forEach(k => {
+      const v   = vals[k];
+      const col = getColor(v);
+      document.getElementById('sl-' + k + '-out').textContent = v;
+      document.getElementById(k + '-val').textContent  = v;
+      document.getElementById(k + '-val').style.color  = col;
+      document.getElementById(k + '-bar').style.width  = v + '%';
+      document.getElementById(k + '-bar').style.background = col;
+    });
+
+    document.getElementById('score-display').textContent = total;
+    document.getElementById('score-display').style.color = getColor(total);
+
+    const lbl   = getLabel(total);
+    const badge = document.getElementById('risk-badge');
+    badge.textContent        = lbl.text;
+    badge.style.background   = lbl.bg;
+    badge.style.color        = lbl.color;
+    badge.style.border       = `1px solid ${lbl.color}`;
+
+    const angle = scoreToAngle(total);
+    document.getElementById('needle-g')
+      .setAttribute('transform', `rotate(${angle}, 250, 240)`);
+  }
+
+  update();
+</script>
+</body>
+</html>

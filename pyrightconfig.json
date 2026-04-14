@@ -1,0 +1,11 @@
+{
+  "include": [
+    "src",
+    "dashboard",
+    "api",
+    "tests"
+  ],
+  "extraPaths": [
+    "d:/hybrid"
+  ]
+}
