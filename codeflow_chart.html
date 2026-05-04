@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hybrid — Code Flowchart</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --blue: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --orange: #ffa657;
+    --teal: #39d3c3;
+    --pink: #f778ba;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  header {
+    padding: 24px 32px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header h1 { font-size: 1.4rem; font-weight: 700; color: var(--text); }
+  header .badge {
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: #1f3a5f;
+    color: var(--blue);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 12px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 0.78rem; color: var(--muted); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+  /* ── CANVAS ── */
+  .canvas {
+    padding: 36px 32px 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── SECTIONS ── */
+  .section-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 10px;
+    align-self: flex-start;
+  }
+
+  /* ── NODES ── */
+  .node {
+    border: 1.5px solid;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 170px;
+    max-width: 260px;
+    position: relative;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+    line-height: 1.35;
+  }
+  .node:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(0,0,0,0.5); }
+  .node .file {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 400;
+    opacity: 0.65;
+    margin-top: 3px;
+    font-family: 'Consolas', monospace;
+  }
+  /* colours */
+  .n-user    { border-color: var(--blue);   background: #0c1929; color: var(--blue); }
+  .n-ui      { border-color: var(--teal);   background: #0a1f1f; color: var(--teal); }
+  .n-api     { border-color: var(--orange); background: #1f1400; color: var(--orange); }
+  .n-pipe    { border-color: var(--purple); background: #1a1030; color: var(--purple); }
+  .n-chain   { border-color: var(--green);  background: #0a1a0f; color: var(--green); }
+  .n-risk    { border-color: var(--red);    background: #1a0a0a; color: var(--red); }
+  .n-ml      { border-color: var(--yellow); background: #1a1200; color: var(--yellow); }
+  .n-output  { border-color: var(--pink);   background: #1a0a14; color: var(--pink); }
+  .n-config  { border-color: var(--muted);  background: #111620; color: var(--muted); }
+
+  /* ── ARROWS ── */
+  .arrow {
+    width: 2px;
+    height: 32px;
+    background: linear-gradient(to bottom, var(--border), var(--muted));
+    position: relative;
+    margin: 0 auto;
+    flex-shrink: 0;
+  }
+  .arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 7px solid var(--muted);
+  }
+  .arrow-label {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.63rem;
+    color: var(--muted);
+    white-space: nowrap;
+    font-family: 'Consolas', monospace;
+    background: var(--bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ── ROW (horizontal grouping) ── */
+  .row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    position: relative;
+  }
+  .row-nodes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .h-connector {
+    width: 40px;
+    height: 2px;
+    background: var(--border);
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  /* ── PHASE BOXES ── */
+  .phase {
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    position: relative;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .phase-title {
+    position: absolute;
+    top: -11px;
+    left: 18px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--bg);
+    padding: 0 8px;
+    border-radius: 4px;
+  }
+
+  /* ── SPLIT (parallel paths) ── */
+  .split-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+  .split {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
+  }
+  .split-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+    max-width: 280px;
+  }
+  .split-branch-title {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .h-split-line {
+    width: 80%;
+    height: 1px;
+    background: var(--border);
+    margin: 0 auto 6px;
+  }
+
+  /* ── TOOLTIP ── */
+  .node[data-tip]:hover::before {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1c2128;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.71rem;
+    color: var(--text);
+    white-space: pre-line;
+    min-width: 190px;
+    max-width: 290px;
+    text-align: left;
+    z-index: 99;
+    pointer-events: none;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* ── RISK BREAKDOWN TABLE ── */
+  .breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 36px;
+    max-width: 860px;
+    width: 100%;
+  }
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .breakdown-card h3 { font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; }
+  .breakdown-card ul { list-style: none; }
+  .breakdown-card ul li {
+    font-size: 0.75rem;
+    color: var(--muted);
+    padding: 3px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .breakdown-card ul li:last-child { border-bottom: none; }
+  .weight { color: var(--text); font-weight: 600; font-family: 'Consolas', monospace; font-size: 0.72rem; }
+
+  /* ── CONFIG CALLOUT ── */
+  .config-box {
+    max-width: 860px;
+    width: 100%;
+    margin-top: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .config-box h3 { font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; color: var(--muted); }
+  .config-box pre {
+    font-size: 0.72rem;
+    color: var(--green);
+    font-family: 'Consolas', monospace;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Hybrid — Crypto Wallet Risk Analysis</h1>
+  <span class="badge">Code Flowchart</span>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:#1f3a5f;border:1.5px solid var(--blue)"></span>User / Input</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#0a1f1f;border:1.5px solid var(--teal)"></span>Streamlit UI</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1f1400;border:1.5px solid var(--orange)"></span>FastAPI Server</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1a1030;border:1.5px solid var(--purple)"></span>Pipeline</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#0a1a0f;border:1.5px solid var(--green)"></span>Blockchain / Data</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1a0a0a;border:1.5px solid var(--red)"></span>Risk Analysis</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1a1200;border:1.5px solid var(--yellow)"></span>ML / Model</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#1a0a14;border:1.5px solid var(--pink)"></span>Output / Display</div>
+</div>
+
+<div class="canvas">
+
+  <!-- ── 1. USER INPUT ── -->
+  <div class="node n-user" data-tip="User opens the Streamlit dashboard in a browser and enters an Ethereum or Bitcoin wallet address to analyze.">
+    👤 User
+    <span class="file">Browser</span>
+  </div>
+  <div class="arrow"><span class="arrow-label">wallet address</span></div>
+
+  <!-- ── 2. STREAMLIT UI ── -->
+  <div class="phase" style="border-color:#39d3c33a;">
+    <span class="phase-title" style="color:var(--teal)">Frontend — dashboard/app.py</span>
+    <div class="node n-ui" data-tip="Sidebar: wallet input + fast_mode toggle + Analyze button.&#10;Sends POST /analyze_wallet to API.&#10;Caches results 5 min (st.cache_data).">
+      Streamlit Dashboard
+      <span class="file">dashboard/app.py</span>
+    </div>
+    <div class="arrow"><span class="arrow-label">POST /analyze_wallet</span></div>
+    <div class="node n-ui" data-tip="HTTP call: requests.post(API_URL, json={wallet, fast_mode})&#10;Timeout: 120 s">
+      fetch_wallet_data()
+      <span class="file">dashboard/app.py</span>
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">HTTP → 8000</span></div>
+
+  <!-- ── 3. FASTAPI ── -->
+  <div class="phase" style="border-color:#ffa65740;">
+    <span class="phase-title" style="color:var(--orange)">API Layer — api/main.py</span>
+    <div class="node n-api" data-tip="Validates wallet format (Ethereum 0x… or Bitcoin).&#10;Entry-point for all analysis.">
+      analyze_wallet()
+      <span class="file">api/main.py</span>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- Validation fork -->
+    <div class="split" style="align-items:flex-start;gap:30px;">
+      <div class="split-branch">
+        <div class="split-branch-title" style="color:var(--red)">Invalid address</div>
+        <div class="node n-risk" style="min-width:130px;font-size:0.75rem;">
+          400 Error
+          <span class="file">HTTPException</span>
+        </div>
+      </div>
+      <div class="split-branch">
+        <div class="split-branch-title" style="color:var(--green)">Valid address</div>
+        <div class="node n-api" data-tip="Calls blockchain pipeline, then runs 4 risk services in sequence." style="min-width:200px;">
+          Orchestrate Analysis
+          <span class="file">api/main.py</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">run pipeline</span></div>
+
+  <!-- ── 4. BLOCKCHAIN PIPELINE ── -->
+  <div class="phase" style="border-color:#bc8cff40;">
+    <span class="phase-title" style="color:var(--purple)">Blockchain Pipeline — src/blockchain/pipeline.py</span>
+
+    <div class="node n-pipe" data-tip="Main orchestrator. Calls each blockchain step in order.">
+      run_wallet_pipeline()
+      <span class="file">src/blockchain/pipeline.py</span>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- Pipeline steps -->
+    <div class="row-nodes">
+      <div class="node n-chain" style="min-width:148px;" data-tip="Calls Alchemy API: alchemy_getAssetTransfers.&#10;Fetches BOTH incoming + outgoing transfers.&#10;Handles pagination (max 5 pages), rate-limit retries (3×).&#10;Deduplicates by tx_hash + logIndex.">
+        fetch_full_wallet_data()
+        <span class="file">alchemy_fetch.py</span>
+      </div>
+      <div class="h-connector" style="background:var(--purple)"></div>
+      <div class="node n-chain" style="min-width:148px;" data-tip="Standardises raw API data:&#10;• tx_hash, from, to, value, asset, timestamp, category&#10;• Converts values to float&#10;Returns list of dicts.">
+        normalize_transactions()
+        <span class="file">normalize.py</span>
+      </div>
+      <div class="h-connector" style="background:var(--purple)"></div>
+      <div class="node n-chain" style="min-width:148px;" data-tip="Only if fast_mode=False.&#10;Fetches data for up to 5 neighbour addresses.&#10;Merges all transactions for richer graph.">
+        expand_transactions()
+        <span class="file">pipeline.py</span>
+      </div>
+    </div>
+    <div class="arrow"></div>
+    <div class="row-nodes">
+      <div class="node n-chain" style="min-width:148px;" data-tip="NetworkX DiGraph:&#10;• Nodes = wallet addresses&#10;• Edges = tx value + count + timestamps&#10;• Aggregates multiple txs between same pair">
+        build_transaction_graph()
+        <span class="file">build_graph.py</span>
+      </div>
+      <div class="h-connector" style="background:var(--purple)"></div>
+      <div class="node n-chain" style="min-width:148px;" data-tip="Extracts 15+ graph features:&#10;in/out degree, value ratios, concentration,&#10;PageRank, fan-out/fan-in flags, pass-through flag.">
+        compute_graph_features()
+        <span class="file">graph_features.py</span>
+      </div>
+      <div class="h-connector" style="background:var(--purple)"></div>
+      <div class="node n-chain" style="min-width:148px;" data-tip="Converts NetworkX graph to JSON:&#10;{nodes: [...], edges: [{source, target, weight, count, timestamp}]}">
+        serialize_graph()
+        <span class="file">pipeline.py</span>
+      </div>
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">graph + features</span></div>
+
+  <!-- ── 5. RISK SERVICES (parallel) ── -->
+  <div class="phase" style="border-color:#f8514940;">
+    <span class="phase-title" style="color:var(--red)">Risk Analysis Services — backend/services/</span>
+    <div class="split" style="gap:12px;align-items:flex-start;">
+
+      <!-- A: Risk Propagation -->
+      <div class="split-branch" style="max-width:220px;">
+        <div class="split-branch-title" style="color:var(--red)">A — Risk Propagation</div>
+        <div class="node n-risk" style="font-size:0.76rem;min-width:180px;" data-tip="Iterative algorithm (5 rounds, alpha=0.3):&#10;• Target wallet starts at 0.7&#10;• Neighbours start at 0.1&#10;• Each round: risk += alpha × Σ(neighbour_risk × edge_weight)&#10;• Weights normalised: log1p(w)/10">
+          propagate_risk()
+          <span class="file">risk_propagation.py</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node n-risk" style="font-size:0.72rem;min-width:180px;">
+          risk_scores dict
+          <span class="file">{address → score}</span>
+        </div>
+      </div>
+
+      <!-- B: Flow Tracing -->
+      <div class="split-branch" style="max-width:220px;">
+        <div class="split-branch-title" style="color:var(--red)">B — Flow Tracing</div>
+        <div class="node n-risk" style="font-size:0.76rem;min-width:180px;" data-tip="DFS from target wallet (max depth 3).&#10;Skips: noise (value < 0.1), cycles, time-reversed txs.&#10;Collects all valid paths.">
+          trace_funds()
+          <span class="file">flow_tracing.py</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node n-risk" style="font-size:0.76rem;min-width:180px;" data-tip="Per flow: weighted fusion of&#10;flow_score (0.25) + length (0.20) + risk (0.20) + direction (0.20) + time (0.15).&#10;Label: laundering_pattern / suspicious / low_risk.">
+          score_all_flows()
+          <span class="file">flow_scoring.py</span>
+        </div>
+      </div>
+
+      <!-- C: Cluster Detection -->
+      <div class="split-branch" style="max-width:220px;">
+        <div class="split-branch-title" style="color:var(--red)">C — Cluster Detection</div>
+        <div class="node n-risk" style="font-size:0.76rem;min-width:180px;" data-tip="Louvain community detection on undirected graph.&#10;Finds tightly-connected wallet clusters.">
+          detect_clusters()
+          <span class="file">cluster_detection.py</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node n-risk" style="font-size:0.76rem;min-width:180px;" data-tip="Per cluster: avg risk score, size, sample nodes.&#10;Sorted by avg_risk descending.">
+          analyze_clusters()
+          <span class="file">cluster_detection.py</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">risk scores + flows + clusters</span></div>
+
+  <!-- ── 6. FUSION MODEL ── -->
+  <div class="phase" style="border-color:#d2992240;">
+    <span class="phase-title" style="color:var(--yellow)">Fusion Scoring — backend/services/explainable_scoring.py</span>
+    <div class="node n-ml" data-tip="Combines 4 signals into final risk score [0,1]:&#10;• behavioral_score  → tx count + avg value (25%)&#10;• graph_score       → propagated risk (25%)&#10;• cluster_score     → wallet's cluster avg_risk (20%)&#10;• gnn_score         → ML/GNN prediction (30%)&#10;&#10;Confidence = avg of all 4 scores.&#10;Generates human-readable reason strings.">
+      compute_final_score()
+      <span class="file">explainable_scoring.py</span>
+    </div>
+    <div class="arrow"></div>
+    <div class="row-nodes" style="gap:16px;">
+      <div class="node n-ml" style="min-width:130px;font-size:0.75rem;" data-tip="tx_count + avg_value thresholds&#10;→ score 0.1 – 0.8">
+        Behavioral Score
+        <span class="file">25 % weight</span>
+      </div>
+      <div class="node n-ml" style="min-width:130px;font-size:0.75rem;" data-tip="Directly from propagate_risk()[wallet]">
+        Graph Score
+        <span class="file">25 % weight</span>
+      </div>
+      <div class="node n-ml" style="min-width:130px;font-size:0.75rem;" data-tip="avg_risk of the wallet's Louvain cluster">
+        Cluster Score
+        <span class="file">20 % weight</span>
+      </div>
+      <div class="node n-ml" style="min-width:130px;font-size:0.75rem;" data-tip="Trained XGBoost / RF / LogReg&#10;(models/best_model.pkl)&#10;falls back to graph_score if unavailable">
+        GNN / ML Score
+        <span class="file">30 % weight</span>
+      </div>
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">final_score + confidence + reasons</span></div>
+
+  <!-- ── 7. RISK LEVEL ── -->
+  <div class="phase" style="border-color:#f8514940;">
+    <span class="phase-title" style="color:var(--red)">Risk Classification — api/main.py</span>
+    <div class="split" style="gap:16px;align-items:flex-start;">
+      <div class="split-branch" style="max-width:160px;">
+        <div class="split-branch-title" style="color:var(--red)">score &gt; 0.70</div>
+        <div class="node n-risk" style="min-width:120px;">HIGH</div>
+      </div>
+      <div class="split-branch" style="max-width:160px;">
+        <div class="split-branch-title" style="color:var(--yellow)">score &gt; 0.40</div>
+        <div class="node n-ml" style="min-width:120px;">MEDIUM</div>
+      </div>
+      <div class="split-branch" style="max-width:160px;">
+        <div class="split-branch-title" style="color:var(--green)">otherwise</div>
+        <div class="node n-chain" style="min-width:120px;">LOW</div>
+      </div>
+    </div>
+  </div>
+  <div class="arrow"><span class="arrow-label">JSON response</span></div>
+
+  <!-- ── 8. DASHBOARD OUTPUT ── -->
+  <div class="phase" style="border-color:#f778ba40;">
+    <span class="phase-title" style="color:var(--pink)">Dashboard Visualisation — dashboard/app.py</span>
+    <div class="row-nodes" style="gap:12px;">
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        Risk Gauge
+        <span class="file">0-100 %, colour-coded</span>
+      </div>
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        7 KPI Metrics
+        <span class="file">tx count, risk scores…</span>
+      </div>
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        Score Breakdown
+        <span class="file">bar chart: 4 components</span>
+      </div>
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        Money Flow Paths
+        <span class="file">labelled + colour-coded</span>
+      </div>
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        Network Graph
+        <span class="file">PyVis interactive</span>
+      </div>
+      <div class="node n-output" style="min-width:130px;font-size:0.75rem;">
+        Tx Summary
+        <span class="file">ETH/BTC + FX rates</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TRAINING SIDEBAR ── -->
+  <div style="margin-top:48px;width:100%;max-width:860px;">
+    <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);font-weight:700;margin-bottom:14px;">Offline — ML Training Pipeline (src/train_model.py)</div>
+    <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;">
+      <div class="node n-chain" style="min-width:148px;font-size:0.75rem;" data-tip="data/processed/feature_dataset.parquet">
+        Load Dataset
+        <span class="file">data/processed/</span>
+      </div>
+      <div style="width:30px;height:2px;background:var(--border);flex-shrink:0;"></div>
+      <div class="node n-chain" style="min-width:148px;font-size:0.75rem;" data-tip="Drop: label, scam_label, address.&#10;Target: scam_label (binary).&#10;80/20 stratified split.">
+        Prepare Features
+        <span class="file">train/test split</span>
+      </div>
+      <div style="width:30px;height:2px;background:var(--border);flex-shrink:0;"></div>
+      <div class="node n-ml" style="min-width:148px;font-size:0.75rem;" data-tip="Trains 3 classifiers:&#10;• Logistic Regression (StandardScaler)&#10;• Random Forest (300 trees, depth 10)&#10;• XGBoost (300 trees, lr=0.05, depth 6)&#10;Selects best by ROC-AUC.">
+        Train 3 Models
+        <span class="file">LR + RF + XGBoost</span>
+      </div>
+      <div style="width:30px;height:2px;background:var(--border);flex-shrink:0;"></div>
+      <div class="node n-ml" style="min-width:148px;font-size:0.75rem;">
+        Save Best Model
+        <span class="file">models/best_model.pkl</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BREAKDOWN TABLE ── -->
+  <div class="breakdown">
+    <div class="breakdown-card">
+      <h3 style="color:var(--red)">Fusion Score Weights</h3>
+      <ul>
+        <li>GNN / ML Score <span class="weight">30 %</span></li>
+        <li>Behavioral Score <span class="weight">25 %</span></li>
+        <li>Graph (Propagation) Score <span class="weight">25 %</span></li>
+        <li>Cluster Score <span class="weight">20 %</span></li>
+      </ul>
+    </div>
+    <div class="breakdown-card">
+      <h3 style="color:var(--red)">Flow Score Weights</h3>
+      <ul>
+        <li>Flow Value (normalised) <span class="weight">25 %</span></li>
+        <li>Path Length <span class="weight">20 %</span></li>
+        <li>Avg Node Risk <span class="weight">20 %</span></li>
+        <li>Flow Direction <span class="weight">20 %</span></li>
+        <li>Time Gap Speed <span class="weight">15 %</span></li>
+      </ul>
+    </div>
+    <div class="breakdown-card">
+      <h3 style="color:var(--purple)">Pipeline Steps</h3>
+      <ul>
+        <li>Fetch via Alchemy API</li>
+        <li>Normalize raw transfers</li>
+        <li>Expand to neighbours (non-fast)</li>
+        <li>Build NetworkX DiGraph</li>
+        <li>Compute 15+ graph features</li>
+        <li>Serialize to JSON</li>
+      </ul>
+    </div>
+    <div class="breakdown-card">
+      <h3 style="color:var(--teal)">Key Thresholds (src/config.py)</h3>
+      <ul>
+        <li>Risk HIGH <span class="weight">&gt; 0.70</span></li>
+        <li>Risk MEDIUM <span class="weight">&gt; 0.40</span></li>
+        <li>Flow: laundering <span class="weight">&gt; 0.70</span></li>
+        <li>Flow: suspicious <span class="weight">&gt; 0.40</span></li>
+        <li>Propagation α <span class="weight">0.30</span></li>
+        <li>Propagation rounds <span class="weight">5</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── CONFIG BOX ── -->
+  <div class="config-box">
+    <h3>src/config.py — Key Parameters</h3>
+    <pre>
+RISK_HIGH_THRESHOLD      = 0.7     # final score → HIGH risk
+RISK_MEDIUM_THRESHOLD    = 0.4     # final score → MEDIUM risk
+
+BEHAVIORAL_TX_HIGH       = 50      # tx count → high behavioral score
+BEHAVIORAL_TX_MED        = 20
+BEHAVIORAL_VALUE_HIGH    = 5       # avg ETH value → high
+BEHAVIORAL_VALUE_MED     = 1
+
+FLOW_TIME_GAP_FAST       = 60      # seconds — rapid money movement
+FLOW_TIME_GAP_MED        = 300
+FLOW_TIME_GAP_SLOW       = 3600
+
+PROPAGATION_TARGET_RISK  = 0.7     # target wallet initial risk
+PROPAGATION_NODE_RISK    = 0.1     # neighbour initial risk
+PROPAGATION_ALPHA        = 0.3     # influence weight per round
+PROPAGATION_ITERATIONS   = 5
+    </pre>
+  </div>
+
+</div><!-- /canvas -->
+
+</body>
+</html>
